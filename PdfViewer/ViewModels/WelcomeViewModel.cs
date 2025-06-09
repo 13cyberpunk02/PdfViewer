@@ -7,8 +7,10 @@ using System.Collections.ObjectModel;
 
 namespace PdfViewer.ViewModels;
 
-public partial class WelcomeViewModel(IPdfThumbnailService pdfThumbnailService) : ObservableObject
+public partial class WelcomeViewModel : ObservableObject
 {
+    private readonly IPdfThumbnailService _pdfService;
+
     [ObservableProperty]
     private string _greetings = "Добро пожаловать!";
 
@@ -22,9 +24,41 @@ public partial class WelcomeViewModel(IPdfThumbnailService pdfThumbnailService) 
     [ObservableProperty]
     private ObservableCollection<PdfPageViewModel> pages = new();
 
+    public IRelayCommand OpenPdfCommand { get; }
+    public IRelayCommand SaveSelectedCommand { get; }
+    public IRelayCommand RasterizeSelectedCommand { get; }
+    public IRelayCommand DeleteSelectedCommand { get; }
 
-    [RelayCommand]
-    private async Task OpenPdf()
+    public WelcomeViewModel(IPdfThumbnailService pdfThumbnailService)
+    {
+        _pdfService = pdfThumbnailService;
+
+        OpenPdfCommand = new AsyncRelayCommand(OpenPdfAsync);
+        SaveSelectedCommand = new RelayCommand(SaveSelected, CanOperateOnSelected);
+        RasterizeSelectedCommand = new RelayCommand(RasterizeSelected, CanOperateOnSelected);
+        DeleteSelectedCommand = new RelayCommand(DeleteSelected, CanOperateOnSelected);
+
+        Pages.CollectionChanged += (s, e) =>
+        {
+            foreach (var page in Pages)
+                page.PropertyChanged += (s2, e2) =>
+                {
+                    if (e2.PropertyName == nameof(PdfPageViewModel.IsSelected))
+                        UpdateCommands();
+                };
+        };
+    }
+
+    private void UpdateCommands()
+    {
+        SaveSelectedCommand.NotifyCanExecuteChanged();
+        RasterizeSelectedCommand.NotifyCanExecuteChanged();
+        DeleteSelectedCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanOperateOnSelected() => Pages.Any(p => p.IsSelected);
+    
+    private async Task OpenPdfAsync()
     {
         var dialog = new OpenFileDialog
         {
@@ -38,19 +72,29 @@ public partial class WelcomeViewModel(IPdfThumbnailService pdfThumbnailService) 
             {
                 await Task.Run(() =>
                 {
-                    var pdf = pdfThumbnailService.LoadAndRasterize(dialog.FileName);
+                    var pdf = _pdfService.LoadAndRasterize(dialog.FileName);
                     App.Current.Dispatcher.Invoke(() =>
                     {
                         Filename = pdf.Filename;
                         Pages.Clear();
                         foreach (var page in pdf.Pages)
                         {
-                            Pages.Add(new PdfPageViewModel
+
+                            var vm = new PdfPageViewModel
                             {
                                 PageNumber = page.PageNumber,
-                                PageThumbnail = page.PageThumbnail
-                            });
+                                PageThumbnail = page.PageThumbnail,
+                                IsSelected = false
+                            };
+
+                            vm.PropertyChanged += (s, e) =>
+                            {
+                                if (e.PropertyName == nameof(PdfPageViewModel.IsSelected))
+                                    UpdateCommands();
+                            };
+                            Pages.Add(vm);
                         }
+                        UpdateCommands();
                     });
                 });
             }
@@ -60,5 +104,24 @@ public partial class WelcomeViewModel(IPdfThumbnailService pdfThumbnailService) 
             }
             
         }
+    }
+
+    private void SaveSelected()
+    {
+        // TODO: Реализуйте сохранение выбранных страниц
+        // Пример: Pages.Where(p => p.IsSelected)
+    }
+
+    private void RasterizeSelected()
+    {
+        // TODO: Реализуйте растеризацию выбранных страниц
+    }
+
+    private void DeleteSelected()
+    {
+        var toDelete = Pages.Where(p => p.IsSelected).ToList();
+        foreach (var page in toDelete)
+            Pages.Remove(page);
+        UpdateCommands();
     }
 }

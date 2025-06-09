@@ -10,4 +10,7 @@ public partial class PdfPageViewModel : ObservableObject
 
     [ObservableProperty]
     private string pageThumbnail;
+
+    [ObservableProperty]
+    private bool isSelected;
 }
