@@ -6,7 +6,7 @@ using System.IO;
 
 namespace PdfViewer.Services;
 
-public class PdfThumbnailService
+public class PdfThumbnailService : IPdfThumbnailService
 {
     public PdfSourceDocument LoadAndRasterize(string filePath)
     {
