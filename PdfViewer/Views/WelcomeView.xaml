@@ -53,7 +53,7 @@
                 HorizontalAlignment="Center"
                 FontSize="16"
                 Foreground="{DynamicResource MahApps.Brushes.AccentBase}"
-                Text="{Binding Filename, StringFormat='Выбран файл: {0}'}"
+                Text="{Binding FileName, StringFormat='Выбран файл: {0}'}"
                 TextTrimming="CharacterEllipsis"
                 TextWrapping="NoWrap" />
             <StackPanel
@@ -62,24 +62,71 @@
                 Orientation="Horizontal">
                 <Button
                     Margin="0,0,10,0"
-                    Command="{Binding SaveSelectedCommand}"
-                    Content="Сохранить страницу" />
+                    Command="{Binding SaveSelectedCommand}">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <iconPacks:PackIconFontAwesome
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Width="12"
+                            Height="12"
+                            Margin="0,0,8,0"
+                            Kind="FloppyDiskSolid" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="Сохраниить" />
+                    </StackPanel>
+                    </Button>
                 <Button
                     Margin="0,0,10,0"
-                    Command="{Binding RasterizeSelectedCommand}"
-                    Content="Растеризовать" />
+                    Command="{Binding RasterizeSelectedCommand}">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <iconPacks:PackIconFontAwesome
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Width="12"
+                            Height="12"
+                            Margin="0,0,8,0"
+                            Kind="BrushSolid" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="Растеризовать" />
+                    </StackPanel>
+                    </Button>
                 <Button
                     Margin="0,0,10,0"
-                    Command="{Binding DeleteSelectedCommand}"
-                    Content="Удалить" />
+                    Command="{Binding DeleteSelectedCommand}">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <iconPacks:PackIconFontAwesome
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            Width="12"
+                            Height="12"
+                            Margin="0,0,8,0"
+                            Kind="TrashCanSolid" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="Удалить" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </StackPanel>
 
         <!--  Сетка страниц  -->
         <ScrollViewer
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center"
             Grid.Row="1"
             Margin="32,0,32,32"
             Padding="5"
+            Background="Gray"
             VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Pages}">
                 <ItemsControl.ItemsPanel>
@@ -100,6 +147,7 @@
                             CornerRadius="18"
                             SnapsToDevicePixels="True">
                             <Grid>
+                                
                                 <CheckBox
                                     Width="22"
                                     Height="22"
@@ -109,6 +157,19 @@
                                     Panel.ZIndex="2"
                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                     ToolTip="Выбрать страницу" />
+                                <Button
+                                    Width="38"
+                                    Height="38"
+                                    Panel.ZIndex="2"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Увеличить страницу"
+                                    Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Command="{Binding DataContext.ShowZoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                    CommandParameter="{Binding }">
+                                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Cursor="Hand" Width="26" Height="26" />
+                                </Button>
+                                
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*" />
@@ -141,13 +202,13 @@
                             </Grid>
                         </Border>
                     </DataTemplate>
-
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
         <!--  Прелоадер  -->
-        <Grid
+        <Grid 
+            Grid.Row="0"
             Grid.RowSpan="2"
             Background="#80000000"
             IsHitTestVisible="{Binding IsLoading}"
@@ -162,8 +223,8 @@
                     HorizontalAlignment="Center"
                     FontSize="18"
                     FontWeight="Bold"
-                    Foreground="White"
-                    Text="Загрузка PDF..." />
+                    Foreground="{StaticResource MahApps.Brushes.AccentBase}"
+                    Text="{Binding LoadingStatusText}" />
             </StackPanel>
         </Grid>
     </Grid>

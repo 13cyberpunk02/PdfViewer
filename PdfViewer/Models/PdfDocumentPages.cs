@@ -2,6 +2,6 @@
 
 public class PdfDocumentPages
 {
-    public int PageNumber { get; set; }
-    public string PageThumbnail { get; set; } = string.Empty;
+    public int PageNumber { get; init; }
+    public string PageThumbnail { get; init; } = string.Empty;
 }
