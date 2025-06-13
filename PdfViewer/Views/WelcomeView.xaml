@@ -6,6 +6,7 @@
     xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
     xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
     Title="PDF Viewer"
+    WindowState="Maximized"
     Width="800"
     Height="450"
     GlowBrush="{DynamicResource MahApps.Brushes.Gray}"
@@ -118,15 +119,14 @@
         </StackPanel>
 
         <!--  Сетка страниц  -->
-        <ScrollViewer
+        <Border Grid.Row="1" Background="#AAFFFFFF" Margin="15,0,15 ,15" Padding="0" CornerRadius="10">
+            <ScrollViewer
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
             VerticalAlignment="Center"
             HorizontalAlignment="Center"
-            Grid.Row="1"
-            Margin="32,0,32,32"
+            Margin="32,0,0,32"
             Padding="5"
-            Background="Gray"
             VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Pages}">
                 <ItemsControl.ItemsPanel>
@@ -141,70 +141,67 @@
                             Height="150"
                             Margin="12"
                             Background="{Binding IsSelected, Converter={StaticResource SelectedBackgroundConverter}}"
-                            BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
-                            BorderThickness="1"
+                            BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
                             ClipToBounds="True"
                             CornerRadius="18"
                             SnapsToDevicePixels="True">
-                            <Grid>
-                                
-                                <CheckBox
-                                    Width="22"
-                                    Height="22"
-                                    Margin="6"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Panel.ZIndex="2"
-                                    IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                    ToolTip="Выбрать страницу" />
-                                <Button
-                                    Width="38"
-                                    Height="38"
-                                    Panel.ZIndex="2"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    ToolTip="Увеличить страницу"
-                                    Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Command="{Binding DataContext.ShowZoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                    CommandParameter="{Binding }">
-                                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Cursor="Hand" Width="26" Height="26" />
-                                </Button>
-                                
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="*" />
-                                        <RowDefinition Height="32" />
-                                        <!--  строка под надпись  -->
-                                    </Grid.RowDefinitions>
-                                    <Image
-                                        Grid.Row="0"
-                                        Margin="12,8,12,4"
+                                <Grid Background="{StaticResource MahApps.Brushes.AccentBase}">
+                                    <CheckBox
+                                        Width="22"
+                                        Height="22"
+                                        Margin="6"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Panel.ZIndex="2"
+                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                        ToolTip="Выбрать страницу" />
+                                    <Button
+                                        Width="38"
+                                        Height="38"
+                                        Panel.ZIndex="2"
                                         HorizontalAlignment="Center"
-                                        VerticalAlignment="Stretch"
-                                        Source="{Binding PageThumbnail, Converter={StaticResource Base64ToImageConverter}}"
-                                        Stretch="UniformToFill" />
-                                    <Border
-                                        Grid.Row="1"
-                                        Margin="0"
-                                        HorizontalAlignment="Stretch"
-                                        VerticalAlignment="Bottom"
-                                        Background="#FFF"
-                                        CornerRadius="0,0,12,12">
-                                        <TextBlock
+                                        VerticalAlignment="Center"
+                                        Cursor="Hand"
+                                        Background="#AAA"
+                                        ToolTip="Увеличить страницу"
+                                        Style="{DynamicResource MahApps.Styles.Button.Circle}"
+                                        Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Command="{Binding DataContext.ShowZoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding }">
+                                        <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Width="26" Height="26" />
+                                    </Button>                                
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="32" />
+                                        <!--  строка подпись  -->
+                                        </Grid.RowDefinitions>
+                                        <Image
+                                            Grid.Row="0"
+                                            Margin="12,8,12,4"
                                             HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
+                                            VerticalAlignment="Stretch"
+                                            Source="{Binding PageThumbnail, Converter={StaticResource Base64ToImageConverter}}"
+                                            Stretch="UniformToFill" />
+                                        
+                                        <TextBlock
+                                            Grid.Row="1"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Bottom"
                                             FontSize="14"
                                             FontWeight="SemiBold"
+                                            Margin="0,0,0,5"
                                             Foreground="#444"
                                             Text="{Binding PageNumber, StringFormat=Страница {0}}" />
-                                    </Border>
+                                    </Grid>
                                 </Grid>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>    
+        </Border>
+        
 
         <!--  Прелоадер  -->
         <Grid 

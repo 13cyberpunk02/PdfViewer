@@ -215,7 +215,10 @@ public partial class WelcomeViewModel : ObservableObject
     private void ShowZoom(PdfPageViewModel? page)
     {
         if (page is null) return;
+            IsLoading = true;
         
+        LoadingStatusText = "Открываю страницу ожидайте...";
+           
         var dpi = 200;
         var pageIndex = page.PageNumber - 1;
         
@@ -237,8 +240,8 @@ public partial class WelcomeViewModel : ObservableObject
         bitmap.StreamSource = ms;
         bitmap.EndInit();
         bitmap.Freeze();
-        
         var window = new Views.PagePreviewView(bitmap);
         window.Show();
+        IsLoading = false;
     }
 }
