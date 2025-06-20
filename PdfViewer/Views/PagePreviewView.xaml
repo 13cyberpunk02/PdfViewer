@@ -63,38 +63,55 @@
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
                     <iconPacks:PackIconFontAwesome Kind="RotateLeftSolid" Width="18" Height="18" />
                 </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding SaveAsPdfCommand}" 
+                        ToolTip="Сохранить данную страницу"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="FilePdfRegular" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding PrintCommand}" 
+                        ToolTip="Печать"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="PrintSolid" Width="18" Height="18" />
+                </Button>
             </StackPanel>
         </Border>
 
-        <!-- Контейнер для зума и панорамирования -->
-        <Border x:Name="ImageBorder"
-                CornerRadius="18"
-                Background="#22FFFFFF"
-                ClipToBounds="True"
-                Margin="10"
-                MouseMove="ImageBorder_MouseMove"
-                MouseLeave="ImageBorder_MouseLeave"
-                MouseEnter="ImageBorder_MouseEnter"
-                MouseDown="ImageBorder_MouseDown"
-                MouseUp="ImageBorder_MouseUp">
-            <Grid>
-                <Image x:Name="ZoomableImage"
-                       Source="{Binding FullPageImage}"
-                       RenderTransformOrigin="0.5,0.5"
-                       Stretch="Uniform"
-                       Margin="10"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       MouseWheel="ZoomableImage_MouseWheel">
-                    <Image.RenderTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="ImageScale" ScaleX="1.0" ScaleY="1.0"/>
-                            <RotateTransform x:Name="ImageRotate" Angle="0"/>
-                            <TranslateTransform x:Name="ImageTranslate" X="0" Y="0"/>
-                        </TransformGroup>
-                    </Image.RenderTransform>
-                </Image>
-            </Grid>
-        </Border>
+        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Border x:Name="ImageBorder"
+                    CornerRadius="18"
+                    Background="#22FFFFFF"
+                    ClipToBounds="True"
+                    Margin="0"
+                    Padding="0"
+                    MouseMove="ImageBorder_MouseMove"
+                    MouseEnter="ImageBorder_MouseEnter"
+                    MouseDown="ImageBorder_MouseDown"
+                    MouseUp="ImageBorder_MouseUp">
+                <Grid>
+                    <Image x:Name="ZoomableImage"
+                           Source="{Binding FullPageImage}"
+                           RenderTransformOrigin="0.5,0.5"
+                           Stretch="Uniform"
+                           Margin="10"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           MouseWheel="ZoomableImage_MouseWheel">
+                        <Image.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}"/>
+                                <RotateTransform Angle="{Binding Angle}"/>
+                                <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}"/>
+                            </TransformGroup>
+                        </Image.RenderTransform>
+                    </Image>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </mah:MetroWindow>

@@ -1,132 +1,78 @@
-using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using PdfViewer.ViewModels;
-using Point = System.Drawing.Point;
 
 namespace PdfViewer.Views;
 
 public partial class PagePreviewView
 {
     private readonly PagePreviewViewModel _vm;
-    private Point _start;
-    private bool _drag;
-    private double _startX, _startY;
-    private double _currentAngle = 0;
-    private DispatcherTimer _toolbarTimer;
+    private readonly DispatcherTimer _toolbarTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     
     public PagePreviewView(ImageSource image)
     {
         InitializeComponent();
-        _vm = new PagePreviewViewModel { FullPageImage = image };
+        _vm = new PagePreviewViewModel(image);
         DataContext = _vm;
-
-        _vm.ZoomRequested += OnZoomRequested;
-        _vm.ZoomResetRequested += OnZoomResetRequested;
-        _vm.RotateRequested += OnRotateRequested;
-
-        _toolbarTimer = new DispatcherTimer() { Interval = TimeSpan.FromSeconds(3) };
-        _toolbarTimer.Tick += (_, __) => HideToolbar();
         
+        _toolbarTimer.Tick += (_, __) =>
+        {
+            _vm.HideToolbar();
+            _toolbarTimer.Stop();
+        };
+
+        // События мыши
+        ImageBorder.MouseEnter += (_, __) => ShowToolbar();
+        ImageBorder.MouseLeave += (_, __) => { _toolbarTimer.Start(); _vm.StopDrag(); Mouse.OverrideCursor = null; };
+        ImageBorder.MouseMove  += ImageBorder_MouseMove;
+        ImageBorder.MouseDown  += ImageBorder_MouseDown;
+        ImageBorder.MouseUp    += ImageBorder_MouseUp;
+        ZoomableImage.MouseWheel += ZoomableImage_MouseWheel;
     }
 
-       private void ImageBorder_MouseEnter(object sender, MouseEventArgs e)
+    private void ImageBorder_MouseEnter(object sender, MouseEventArgs e)
     {
         ShowToolbar();
     }
 
     private void ImageBorder_MouseMove(object sender, MouseEventArgs e)
     {
-        if (_drag && e.LeftButton == MouseButtonState.Pressed)
+        if (e.LeftButton == MouseButtonState.Pressed && _vm.Scale > 1.01)
         {
-            var pos = e.GetPosition(ImageBorder);
-            var dx = pos.X - _start.X;
-            var dy = pos.Y - _start.Y;
-            ImageTranslate.X = _startX + dx;
-            ImageTranslate.Y = _startY + dy;
+            _vm.UpdateDrag(e.GetPosition(ImageBorder));
         }
         ShowToolbar();
     }
 
-    private void ImageBorder_MouseLeave(object sender, MouseEventArgs e)
-    {
-        _toolbarTimer.Start();
-        _drag = false;
-    }
-
     private void ImageBorder_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed && (ImageScale.ScaleX > 1.01 || ImageScale.ScaleY > 1.01))
+        if (e.LeftButton == MouseButtonState.Pressed && _vm.Scale > 1.01)
         {
-            _drag = true;
-            _start.X = (int)e.GetPosition(ImageBorder).X;
-            _start.Y = (int)e.GetPosition(ImageBorder).Y;
-            _startX = ImageTranslate.X;
-            _startY = ImageTranslate.Y;
-            ImageBorder.CaptureMouse();
-            
+            _vm.StartDrag(e.GetPosition(ImageBorder));
             Mouse.OverrideCursor = Cursors.Hand;
+            ImageBorder.CaptureMouse();
         }
     }
 
     private void ImageBorder_MouseUp(object sender, MouseButtonEventArgs e)
     {
-        _drag = false;
-        ImageBorder.ReleaseMouseCapture();
-        
+        _vm.StopDrag();
         Mouse.OverrideCursor = null;
+        ImageBorder.ReleaseMouseCapture();
     }
 
     private void ZoomableImage_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (e.Delta > 0)
-            OnZoomRequested(1.25);
-        else
-            OnZoomRequested(0.8);
-        e.Handled = true;
+        _vm.MouseWheelZoom(e.Delta);
         ShowToolbar();
-    }
-
-    private void OnZoomRequested(double factor)
-    {
-        var newScaleX = ImageScale.ScaleX * factor;
-        var newScaleY = ImageScale.ScaleY * factor;
-        if (newScaleX < 1.0) newScaleX = newScaleY = 1.0;
-        if (newScaleX > 10.0) newScaleX = newScaleY = 10.0;
-        ImageScale.ScaleX = newScaleX;
-        ImageScale.ScaleY = newScaleY;
-        if (newScaleX == 1.0)
-        {
-            ImageTranslate.X = 0;
-            ImageTranslate.Y = 0;
-        }
-    }
-
-    private void OnZoomResetRequested()
-    {
-        ImageScale.ScaleX = ImageScale.ScaleY = 1.0;
-        ImageTranslate.X = ImageTranslate.Y = 0;
-    }
-    
-    private void OnRotateRequested(double angleDelta)
-    {
-        _currentAngle = (_currentAngle + angleDelta) % 360;
-        if (_currentAngle < 0) _currentAngle += 360;
-        ImageRotate.Angle = _currentAngle;
+        e.Handled = true;
     }
 
     private void ShowToolbar()
     {
-        _vm.ToolbarVisible = true;
+        _vm.ShowToolbar();
         _toolbarTimer.Stop();
         _toolbarTimer.Start();
-    }
-
-    private void HideToolbar()
-    {
-        _vm.ToolbarVisible = false;
-        _toolbarTimer.Stop();
     }
 }
