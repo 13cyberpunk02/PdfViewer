@@ -4,11 +4,114 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         mc:Ignorable="d"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
-        Title="Просмотр страницы" Height="600" Width="450">
+        Title="Просмотр страницы" Height="600" Width="450"
+        Background="Black">
     
-        <Image Source="{Binding FullPageImage}"
-               Stretch="Uniform"
-               Margin="10"/>
+    <mah:MetroWindow.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </mah:MetroWindow.Resources>
+    <Grid>
+        <!-- Панель с кнопками управления -->
+        <Border x:Name="Toolbar"
+                Panel.ZIndex="2"
+                Margin="24"
+                Padding="6,2"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Center"
+                CornerRadius="12"
+                Background="#AA444444"
+                Visibility="{Binding ToolbarVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel Orientation="Horizontal">
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}"
+                        Command="{Binding ZoomInCommand}" ToolTip="Увеличить">
+                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}"
+                        Command="{Binding ZoomOutCommand}" ToolTip="Уменьшить">
+                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassMinusSolid" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding ResetZoomCommand}" ToolTip="100%"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="GroupArrowsRotateSolid" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding RotateRightCommand}" 
+                        ToolTip="Повернуть на 90 градусов по часовой стрелке"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="RotateRightSolid" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding RotateLeftCommand}" 
+                        ToolTip="Повернуть на 90 градусов против часовой стрелки"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="RotateLeftSolid" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding SaveAsPdfCommand}" 
+                        ToolTip="Сохранить данную страницу"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="FilePdfRegular" Width="18" Height="18" />
+                </Button>
+                <Button Width="32" 
+                        Height="32" 
+                        Margin="2,0"
+                        Command="{Binding PrintCommand}" 
+                        ToolTip="Печать"
+                        Style="{DynamicResource MahApps.Styles.Button.Circle}">
+                    <iconPacks:PackIconFontAwesome Kind="PrintSolid" Width="18" Height="18" />
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Border x:Name="ImageBorder"
+                    CornerRadius="18"
+                    Background="#22FFFFFF"
+                    ClipToBounds="True"
+                    Margin="0"
+                    Padding="0"
+                    MouseMove="ImageBorder_MouseMove"
+                    MouseEnter="ImageBorder_MouseEnter"
+                    MouseDown="ImageBorder_MouseDown"
+                    MouseUp="ImageBorder_MouseUp">
+                <Grid>
+                    <Image x:Name="ZoomableImage"
+                           Source="{Binding FullPageImage}"
+                           RenderTransformOrigin="0.5,0.5"
+                           Stretch="Uniform"
+                           Margin="10"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           MouseWheel="ZoomableImage_MouseWheel">
+                        <Image.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}"/>
+                                <RotateTransform Angle="{Binding Angle}"/>
+                                <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}"/>
+                            </TransformGroup>
+                        </Image.RenderTransform>
+                    </Image>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </mah:MetroWindow>

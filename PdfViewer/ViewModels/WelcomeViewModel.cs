@@ -10,7 +10,6 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using PdfiumViewer;
 using PdfSharp.Drawing;
-using PdfViewer.Models;
 
 namespace PdfViewer.ViewModels;
 
