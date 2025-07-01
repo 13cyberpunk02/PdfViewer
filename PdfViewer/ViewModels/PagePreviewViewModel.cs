@@ -1,11 +1,13 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+using PdfViewer.Helpers;
 
 namespace PdfViewer.ViewModels;
 
@@ -28,6 +30,12 @@ public partial class PagePreviewViewModel : ObservableObject
     
     [ObservableProperty]
     private bool toolbarVisible = true;
+
+    [ObservableProperty] 
+    private string printStatus = string.Empty;
+    
+    [ObservableProperty] private Visibility printStatusVisibility = Visibility.Collapsed;
+
     
     private bool _isDragging;
     private Point _dragStartPoint;
@@ -42,7 +50,7 @@ public partial class PagePreviewViewModel : ObservableObject
         ResetZoomCommand = new RelayCommand(ResetView);
         RotateLeftCommand = new RelayCommand(() => Angle = (Angle - 90) % 360);
         RotateRightCommand = new RelayCommand(() => Angle = (Angle + 90) % 360);
-        PrintCommand = new RelayCommand(PrintImage);
+        PrintCommand = new AsyncRelayCommand(PrintImage);
         SaveAsPdfCommand = new RelayCommand(SaveImageAsPdf);
     }
     
@@ -89,7 +97,7 @@ public partial class PagePreviewViewModel : ObservableObject
         }
     }
 
-    public void ResetView()
+    private void ResetView()
     {
         Scale = 1.0;
         OffsetX = 0;
@@ -97,7 +105,6 @@ public partial class PagePreviewViewModel : ObservableObject
         Angle = 0;
     }
 
-    // Toolbar logic
     public void ShowToolbar()
     {
         ToolbarVisible = true;
@@ -108,24 +115,34 @@ public partial class PagePreviewViewModel : ObservableObject
         ToolbarVisible = false;
     }
 
-    // Print
-    private void PrintImage()
+    private async Task PrintImage()
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        if(FullPageImage is null) return;
+        
+        if (FullPageImage is BitmapSource bmp)
         {
-            var dlg = new System.Windows.Controls.PrintDialog();
-            if (dlg.ShowDialog() == true)
-            {
-                var vis = new System.Windows.Controls.Image
-                {
-                    Source = FullPageImage,
-                    Width = FullPageImage?.Width ?? 0,
-                    Height = FullPageImage?.Height ?? 0,
-                    Stretch = Stretch.Uniform
-                };
-                dlg.PrintVisual(vis, "Печать изображения");
-            }
-        });
+            var format = PaperFormatHelper.DetectPaperFormat(bmp, out double width, out double height);
+            await ShowPrintStatus($"Формат печати: {format} ({width:F0} x {height:F0} мм)");
+            string result = PrintingHelper.PrintImageSource(
+                imageSource: FullPageImage,
+                printerName: "Microsoft Print to PDF",
+                widthMm: fullPageImage.Width,
+                heightMm: fullPageImage.Height,
+                onStatusUpdate: msg => printStatus = msg);
+            
+            await ShowPrintStatus(result);
+        }
+    }
+    
+    private async Task ShowPrintStatus(string message)
+    {
+        PrintStatus = message;
+        PrintStatusVisibility = Visibility.Visible;
+
+        await Task.Delay(5000);
+        
+        if (PrintStatus == message)
+            PrintStatusVisibility = Visibility.Collapsed;
     }
 
     // Save as PDF

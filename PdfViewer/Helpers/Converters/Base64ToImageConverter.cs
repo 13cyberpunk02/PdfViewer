@@ -12,15 +12,13 @@ public class Base64ToImageConverter : IValueConverter
         if (value is string base64 && !string.IsNullOrEmpty(base64))
         {
             byte[] binaryData = System.Convert.FromBase64String(base64);
-            using (var ms = new MemoryStream(binaryData))
-            {
-                var bi = new BitmapImage();
-                bi.BeginInit();
-                bi.CacheOption = BitmapCacheOption.OnLoad;
-                bi.StreamSource = ms;
-                bi.EndInit();
-                return bi;
-            }
+            using var ms = new MemoryStream(binaryData);
+            var bi = new BitmapImage();
+            bi.BeginInit();
+            bi.CacheOption = BitmapCacheOption.OnLoad;
+            bi.StreamSource = ms;
+            bi.EndInit();
+            return bi;
         }
         return null;
     }

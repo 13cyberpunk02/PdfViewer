@@ -41,7 +41,7 @@ public partial class WelcomeViewModel : ObservableObject
     public IRelayCommand RasterizeSelectedCommand { get; }
     public IRelayCommand DeleteSelectedCommand { get; }
     
-    public IRelayCommand ShowZoomCommand { get; }
+    public IAsyncRelayCommand ShowZoomCommand { get; }
 
     public WelcomeViewModel(IPdfThumbnailService pdfThumbnailService)
     {
@@ -51,7 +51,7 @@ public partial class WelcomeViewModel : ObservableObject
         SaveSelectedCommand = new RelayCommand(SaveSelected, CanOperateOnSelected);
         RasterizeSelectedCommand = new AsyncRelayCommand(RasterizeSelected, CanOperateOnSelected);
         DeleteSelectedCommand = new RelayCommand(DeleteSelected, CanOperateOnSelected);
-        ShowZoomCommand = new RelayCommand<PdfPageViewModel>(ShowZoom);
+        ShowZoomCommand = new AsyncRelayCommand<PdfPageViewModel>(ShowZoomAsync);
 
         Pages.CollectionChanged += (s, e) =>
         {
@@ -210,37 +210,57 @@ public partial class WelcomeViewModel : ObservableObject
             Pages.Remove(page);
         UpdateCommands();
     }
-    
-    private void ShowZoom(PdfPageViewModel? page)
-    {
-        if (page is null) return;
-            IsLoading = true;
-        
-        LoadingStatusText = "Открываю страницу ожидайте...";
-           
-        var dpi = 200;
-        var pageIndex = page.PageNumber - 1;
-        
-        using var document = PdfDocument.Load(FileSource);
-        
-        var pageSize = document.PageSizes[pageIndex];
-        int widthPx = (int)Math.Round(pageSize.Width / 72.0 * dpi);
-        int heightPx = (int)Math.Round(pageSize.Height / 72.0 * dpi);
-        using var image = document.Render(pageIndex, widthPx, heightPx, dpi, dpi, PdfRenderFlags.ForPrinting);
-        
-        using var ms = new MemoryStream();
-        image.Save(ms, ImageFormat.Png);
-        ms.Position = 0;
 
-        // Создаём ImageSource для WPF
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.StreamSource = ms;
-        bitmap.EndInit();
-        bitmap.Freeze();
-        var window = new Views.PagePreviewView(bitmap);
-        window.Show();
-        IsLoading = false;
+    private async Task ShowZoomAsync(PdfPageViewModel? page)
+    {
+        if (page is null)
+            return;
+
+        IsLoading = true;
+        LoadingStatusText = "Открываю страницу, ожидайте...";
+
+        try
+        {
+            var dpi = 200;
+            var pageIndex = page.PageNumber - 1;
+
+            // Загрузка PDF (если нет async API, используем Task.Run)
+            using var document = await Task.Run(() => PdfDocument.Load(FileSource));
+
+            var pageSize = document.PageSizes[pageIndex];
+            int widthPx = (int)Math.Round(pageSize.Width / 72.0 * dpi);
+            int heightPx = (int)Math.Round(pageSize.Height / 72.0 * dpi);
+
+            // Рендеринг страницы
+            using var img = document.Render(pageIndex, widthPx, heightPx, dpi, dpi, PdfRenderFlags.ForPrinting);
+
+            // Генерируем путь для временного файла
+            string tempFilePath = Path.Combine(Path.GetTempPath(), $"pdf_preview_{Guid.NewGuid()}.png");
+
+            // Асинхронное сохранение в файл
+            await Task.Run(() =>
+            {
+                img.Save(tempFilePath, ImageFormat.Png); // Сохраняем сразу в файл
+            });
+
+            // Загрузка изображения из файла в BitmapImage
+            var bmp = new BitmapImage();
+            using (var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose | FileOptions.Asynchronous))
+            {
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = fileStream;
+                bmp.EndInit();
+                bmp.Freeze();
+            }
+
+            // Показ окна с изображением
+            var window = new Views.PagePreviewView(bmp);
+            window.Show();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }

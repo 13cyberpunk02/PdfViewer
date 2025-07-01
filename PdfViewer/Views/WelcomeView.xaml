@@ -10,7 +10,8 @@
     Width="800"
     Height="450"
     GlowBrush="{DynamicResource MahApps.Brushes.Gray}"
-    WindowStartupLocation="CenterScreen">
+    WindowStartupLocation="CenterScreen"
+    Background="{DynamicResource MahApps.Brushes.Accent2}">
 
     <mah:MetroWindow.Resources>
         <converters:Base64ToImageConverter x:Key="Base64ToImageConverter" />
@@ -120,11 +121,12 @@
 
         <!--  Сетка страниц  -->
         <Border Grid.Row="1" Background="#AAFFFFFF" Margin="15,0,15 ,15" Padding="0" CornerRadius="10">
-            <ScrollViewer
+            <ScrollViewer                   
             HorizontalContentAlignment="Center"
             VerticalContentAlignment="Center"
             VerticalAlignment="Center"
             HorizontalAlignment="Center"
+            Background="{DynamicResource MahApps.Brushes.Accent4}"
             Margin="32,0,0,32"
             Padding="5"
             VerticalScrollBarVisibility="Auto">
@@ -136,78 +138,158 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
+                        <!-- Нужно сделать так чтобы Border при входе курсора мыши на границы Border был эффект тени, 
+                                    и увеличение размера Border с Grid внутри -->
                         <Border
                             Width="120"
                             Height="150"
                             Margin="12"
-                            Background="{Binding IsSelected, Converter={StaticResource SelectedBackgroundConverter}}"
-                            BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
-                            ClipToBounds="True"
                             CornerRadius="18"
-                            SnapsToDevicePixels="True">
-                                <Grid Background="{StaticResource MahApps.Brushes.AccentBase}">
-                                    <CheckBox
-                                        Width="22"
-                                        Height="22"
-                                        Margin="6"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Top"
-                                        Panel.ZIndex="2"
-                                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                        ToolTip="Выбрать страницу" />
-                                    <Button
-                                        Width="38"
-                                        Height="38"
-                                        Panel.ZIndex="2"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Cursor="Hand"
-                                        Background="#AAA"
-                                        ToolTip="Увеличить страницу"
-                                        Style="{DynamicResource MahApps.Styles.Button.Circle}"
-                                        Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        Command="{Binding DataContext.ShowZoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding }">
-                                        <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Width="26" Height="26" />
-                                    </Button>                                
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="*" />
-                                            <RowDefinition Height="32" />
-                                        <!--  строка подпись  -->
-                                        </Grid.RowDefinitions>
-                                        <Image
-                                            Grid.Row="0"
-                                            Margin="12,8,12,4"
+                            SnapsToDevicePixels="True"
+                            RenderTransformOrigin="0.5,0.5">
+    
+                            <!-- Контейнер для всего содержимого -->
+                            <Grid x:Name="contentGrid" ClipToBounds="True">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="scaleTransform" ScaleX="1" ScaleY="1"/>
+                                </Grid.RenderTransform>
+                                <!-- Основной контент -->
+                                <Border Background="{Binding IsSelected, Converter={StaticResource SelectedBackgroundConverter}}"
+                                    BorderBrush="{DynamicResource MahApps.Brushes.Accent}"
+                                    CornerRadius="18">
+                    
+                                    <Grid Background="Transparent">
+                                    <!-- Ваш контент без изменений -->
+                                        <CheckBox
+                                            Width="22"
+                                            Height="22"
+                                            Margin="6"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Panel.ZIndex="2"
+                                            IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                            ToolTip="Выбрать страницу"/>
+            
+                                        <Button
+                                            Width="38"
+                                            Height="38"
+                                            Panel.ZIndex="2"
                                             HorizontalAlignment="Center"
-                                            VerticalAlignment="Stretch"
-                                            Source="{Binding PageThumbnail, Converter={StaticResource Base64ToImageConverter}}"
-                                            Stretch="UniformToFill" />
+                                            VerticalAlignment="Center"
+                                            Cursor="Hand"
+                                            Background="#AAA"
+                                            ToolTip="Увеличить страницу"
+                                            Style="{DynamicResource MahApps.Styles.Button.Circle}"
+                                            Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                            Command="{Binding DataContext.ShowZoomCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}">
+                                            <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Width="26" Height="26"/>
+                                        </Button>
+                
+                                        <Border CornerRadius="12" BorderBrush="Black" Background="{DynamicResource MahApps.Brushes.Accent}" BorderThickness="2" Margin="4">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="32"/>
+                                                </Grid.RowDefinitions>
+                                                <Image
+                                                    Grid.Row="0"
+                                                    Margin="12,8,12,4"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Stretch"
+                                                    Source="{Binding PageThumbnail, Converter={StaticResource Base64ToImageConverter}}"
+                                                    Stretch="UniformToFill"/>
                                         
-                                        <TextBlock
-                                            Grid.Row="1"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Bottom"
-                                            FontSize="14"
-                                            FontWeight="SemiBold"
-                                            Margin="0,0,0,5"
-                                            Foreground="#444"
-                                            Text="{Binding PageNumber, StringFormat=Страница {0}}" />
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Bottom"
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Margin="0,0,0,5"
+                                                    Foreground="#444"
+                                                    Text="{Binding PageNumber, StringFormat=Страница {0}}"/>
+                                            </Grid>
+                                        </Border>
                                     </Grid>
-                                </Grid>
-                            </Border>
+                                </Border>
+                            </Grid>
+    
+                            <!-- Триггеры для анимации -->
+                            <Border.Triggers>
+                                <!-- Анимация при наведении -->
+                                <EventTrigger RoutedEvent="MouseEnter">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <!-- Анимация масштабирования -->
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="scaleTransform"
+                                                Storyboard.TargetProperty="ScaleX"
+                                                To="1.05"
+                                                Duration="0:0:0.2"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="scaleTransform"
+                                                Storyboard.TargetProperty="ScaleY"
+                                                To="1.05"
+                                                Duration="0:0:0.2"/>
+                                            
+                                            <!-- Анимация тени -->
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Effect.BlurRadius"
+                                                To="15"
+                                                Duration="0:0:0.2"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Effect.Opacity"
+                                                To="0.5"
+                                                Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+        
+                                <!-- Анимация при уходе курсора -->
+                                <EventTrigger RoutedEvent="MouseLeave">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="scaleTransform"
+                                                Storyboard.TargetProperty="ScaleX"
+                                                To="1"
+                                                Duration="0:0:0.2"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="scaleTransform"
+                                                Storyboard.TargetProperty="ScaleY"
+                                                To="1"
+                                                Duration="0:0:0.2"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Effect.BlurRadius"
+                                                To="0"
+                                                Duration="0:0:0.2"/>
+                                            <DoubleAnimation
+                                                Storyboard.TargetProperty="Effect.Opacity"
+                                                To="0"
+                                                Duration="0:0:0.2"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Border.Triggers>
+    
+                            <!-- Эффект тени (изначально невидимый) -->
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="0" ShadowDepth="5" Color="Black" Opacity="0"/>
+                            </Border.Effect>
+                        </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>    
         </Border>
-        
 
         <!--  Прелоадер  -->
         <Grid 
             Grid.Row="0"
             Grid.RowSpan="2"
-            Background="#80000000"
+            
+            Background="#FFaaaaaa"
             IsHitTestVisible="{Binding IsLoading}"
             Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">

@@ -9,80 +9,86 @@
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Title="Просмотр страницы" Height="600" Width="450"
-        Background="Black">
+        Background="{DynamicResource MahApps.Brushes.Accent4}">
     
     <mah:MetroWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </mah:MetroWindow.Resources>
-    <Grid>
+    <Grid Margin="24">
         <!-- Панель с кнопками управления -->
         <Border x:Name="Toolbar"
                 Panel.ZIndex="2"
-                Margin="24"
+                Margin="14"
                 Padding="6,2"
-                VerticalAlignment="Top"
-                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Left"
                 CornerRadius="12"
                 Background="#AA444444"
                 Visibility="{Binding ToolbarVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <StackPanel Orientation="Horizontal">
+            <StackPanel Orientation="Vertical">
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}"
                         Command="{Binding ZoomInCommand}" ToolTip="Увеличить">
-                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassPlusSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}"
                         Command="{Binding ZoomOutCommand}" ToolTip="Уменьшить">
-                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassMinusSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="MagnifyingGlassMinusSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Command="{Binding ResetZoomCommand}" ToolTip="100%"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
-                    <iconPacks:PackIconFontAwesome Kind="GroupArrowsRotateSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="GroupArrowsRotateSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Command="{Binding RotateRightCommand}" 
                         ToolTip="Повернуть на 90 градусов по часовой стрелке"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
-                    <iconPacks:PackIconFontAwesome Kind="RotateRightSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="RotateRightSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Command="{Binding RotateLeftCommand}" 
                         ToolTip="Повернуть на 90 градусов против часовой стрелки"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
-                    <iconPacks:PackIconFontAwesome Kind="RotateLeftSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="RotateLeftSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Command="{Binding SaveAsPdfCommand}" 
                         ToolTip="Сохранить данную страницу"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
-                    <iconPacks:PackIconFontAwesome Kind="FilePdfRegular" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="FilePdfRegular" Foreground="White" Width="18" Height="18" />
                 </Button>
                 <Button Width="32" 
                         Height="32" 
                         Margin="2,0"
+                        Cursor="Hand"
                         Command="{Binding PrintCommand}" 
                         ToolTip="Печать"
                         Style="{DynamicResource MahApps.Styles.Button.Circle}">
-                    <iconPacks:PackIconFontAwesome Kind="PrintSolid" Width="18" Height="18" />
+                    <iconPacks:PackIconFontAwesome Kind="PrintSolid" Foreground="White" Width="18" Height="18" />
                 </Button>
             </StackPanel>
         </Border>
-
-        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <Border x:Name="ImageBorder"
                     CornerRadius="18"
                     Background="#22FFFFFF"
@@ -93,24 +99,38 @@
                     MouseEnter="ImageBorder_MouseEnter"
                     MouseDown="ImageBorder_MouseDown"
                     MouseUp="ImageBorder_MouseUp">
-                <Grid>
-                    <Image x:Name="ZoomableImage"
-                           Source="{Binding FullPageImage}"
-                           RenderTransformOrigin="0.5,0.5"
-                           Stretch="Uniform"
-                           Margin="10"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           MouseWheel="ZoomableImage_MouseWheel">
-                        <Image.RenderTransform>
-                            <TransformGroup>
-                                <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}"/>
-                                <RotateTransform Angle="{Binding Angle}"/>
-                                <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}"/>
-                            </TransformGroup>
-                        </Image.RenderTransform>
-                    </Image>
-                </Grid>
+                <Image x:Name="ZoomableImage"
+                       Source="{Binding FullPageImage}"
+                       RenderTransformOrigin="0.5,0.5"
+                       Stretch="Uniform"
+                       Margin="10"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       MouseWheel="ZoomableImage_MouseWheel">
+                    <Image.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform ScaleX="{Binding Scale}" ScaleY="{Binding Scale}"/>
+                            <RotateTransform Angle="{Binding Angle}"/>
+                            <TranslateTransform X="{Binding OffsetX}" Y="{Binding OffsetY}"/>
+                        </TransformGroup>
+                    </Image.RenderTransform>
+                </Image>
+            </Border>
+            <Border
+                CornerRadius="0,0,18,18"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Bottom"
+                Margin="24"
+                Padding="12,8"                
+                Panel.ZIndex="10"
+                Visibility="{Binding PrintStatusVisibility}">
+                <TextBlock
+                    Text="{Binding PrintStatus}"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    FontSize="18"
+                    TextWrapping="Wrap"
+                    TextAlignment="Center"/>
             </Border>
         </Grid>
     </Grid>
