@@ -1,4 +1,5 @@
-﻿using PdfiumViewer;
+﻿using MuPDF.NET;
+using PdfiumViewer;
 using PdfViewer.Models;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -17,12 +18,18 @@ public class PdfThumbnailService : IPdfThumbnailService
             Pages = new List<PdfDocumentPages>()
         };
 
-        using var document = PdfDocument.Load(filePath);
+        var document = new Document(filePath);
+        //using var document = PdfDocument.Load(filePath);
         sourceDocument.PagesCount = document.PageCount;
         for(int i = 0; i < document.PageCount; i++)
         {
-            using var image = document.Render(i, 96,96, dpiX: 96, dpiY: 96, PdfRenderFlags.Annotations);
-            var base64 = ImageToBase64(image, ImageFormat.Png);
+            Page page = document[i];
+            Pixmap pixmap = page.GetPixmap();
+            pixmap.SetDpi(96, 96);
+            pixmap.SetOrigin(96, 96);
+            pixmap.Save($"page_{i + 1}.png", "");
+            //using var image = document.Render(i, 96,96, dpiX: 96, dpiY: 96, PdfRenderFlags.Annotations);
+            //var base64 = ImageToBase64(image, ImageFormat.Png);
             sourceDocument.Pages.Add(new PdfDocumentPages
             {
                 PageNumber = i + 1,
