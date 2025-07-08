@@ -5,8 +5,6 @@ using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
-using PdfSharp.Drawing;
-using PdfSharp.Pdf;
 using PdfViewer.Helpers;
 
 namespace PdfViewer.ViewModels;
@@ -153,13 +151,13 @@ public partial class PagePreviewViewModel : ObservableObject
             var dlg = new SaveFileDialog()
             {
                 Filter = "PDF файл (*.pdf)|*.pdf",
-                FileName = "Изображение.pdf"
+                FileName = "Мой документ.pdf"
             };
             if (dlg.ShowDialog() == true)
             {
                 try
                 {
-                    var bitmapSource = FullPageImage as System.Windows.Media.Imaging.BitmapSource;
+                    var bitmapSource = FullPageImage as BitmapSource;
                     if (bitmapSource == null)
                     {
                         MessageBox.Show("Изображение не найдено.");
@@ -167,23 +165,23 @@ public partial class PagePreviewViewModel : ObservableObject
                     }
                     using (var ms = new MemoryStream())
                     {
-                        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-                        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapSource));
+                        var encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
                         encoder.Save(ms);
                         ms.Position = 0;
 
-                        using (var pdf = new PdfDocument())
-                        {
-                            var page = pdf.AddPage();
-                            using (var gfx = XGraphics.FromPdfPage(page))
-                            using (var img = XImage.FromStream(ms))
-                            {
-                                page.Width = img.PixelWidth * 72.0 / img.HorizontalResolution;
-                                page.Height = img.PixelHeight * 72.0 / img.VerticalResolution;
-                                gfx.DrawImage(img, 0, 0, page.Width, page.Height);
-                            }
-                            pdf.Save(dlg.FileName);
-                        }
+                        //using (var pdf = new PdfDocument())
+                        //{
+                        //    var page = pdf.AddPage();
+                        //    using (var gfx = XGraphics.FromPdfPage(page))
+                        //    using (var img = XImage.FromStream(ms))
+                        //    {
+                        //        page.Width = img.PixelWidth * 72.0 / img.HorizontalResolution;
+                        //        page.Height = img.PixelHeight * 72.0 / img.VerticalResolution;
+                        //        gfx.DrawImage(img, 0, 0, page.Width, page.Height);
+                        //    }
+                        //    pdf.Save(dlg.FileName);
+                        //}
                     }
                     MessageBox.Show("Сохранено как PDF!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
                 }

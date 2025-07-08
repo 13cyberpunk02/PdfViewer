@@ -22,7 +22,6 @@ public partial class PagePreviewView
             _toolbarTimer.Stop();
         };
 
-        // События мыши
         ImageBorder.MouseEnter += (_, __) => ShowToolbar();
         ImageBorder.MouseLeave += (_, __) => { _toolbarTimer.Start(); _vm.StopDrag(); Mouse.OverrideCursor = null; };
         ImageBorder.MouseMove  += ImageBorder_MouseMove;

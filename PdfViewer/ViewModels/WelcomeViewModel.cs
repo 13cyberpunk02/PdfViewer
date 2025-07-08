@@ -1,21 +1,18 @@
-﻿
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using PdfViewer.Services;
 using System.Collections.ObjectModel;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
-using PdfiumViewer;
-using PdfSharp.Drawing;
+
 
 namespace PdfViewer.ViewModels;
 
 public partial class WelcomeViewModel : ObservableObject
-{
-    private readonly IPdfThumbnailService _pdfService;
+{    
+    private readonly IPdfDocumentService _pdfDocumentService;
 
     [ObservableProperty]
     private string _greetings = "Добро пожаловать!";
@@ -43,9 +40,9 @@ public partial class WelcomeViewModel : ObservableObject
     
     public IAsyncRelayCommand ShowZoomCommand { get; }
 
-    public WelcomeViewModel(IPdfThumbnailService pdfThumbnailService)
-    {
-        _pdfService = pdfThumbnailService;
+    public WelcomeViewModel(IPdfDocumentService pdfDocumentService)
+    {        
+        _pdfDocumentService = pdfDocumentService;
 
         OpenPdfCommand = new AsyncRelayCommand(OpenPdfAsync);
         SaveSelectedCommand = new RelayCommand(SaveSelected, CanOperateOnSelected);
@@ -62,6 +59,7 @@ public partial class WelcomeViewModel : ObservableObject
                         UpdateCommands();
                 };
         };
+        _pdfDocumentService = pdfDocumentService;
     }
 
     private void UpdateCommands()
@@ -85,45 +83,38 @@ public partial class WelcomeViewModel : ObservableObject
             IsLoading = true;
             LoadingStatusText = "Загружаю файл PDF...";
             FileSource = dialog.FileName;
-            try
+
+            var pdfDoc = await _pdfDocumentService.Rasterize(dialog.FileName);
+            Pages.Clear();
+            for (int i = 0; i < pdfDoc.Count; i++)
             {
-                await Task.Run(() =>
+                var vm = new PdfPageViewModel
                 {
-                    var pdf = _pdfService.LoadAndRasterize(dialog.FileName);
-                    FileName = pdf.Filename;
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        
-                        Pages.Clear();
-                        foreach (var page in pdf.Pages)
-                        {
+                    PageNumber = i + 1,
+                    PageThumbnail = pdfDoc.ElementAt(i),
+                    IsSelected = false
+                };
 
-                            var vm = new PdfPageViewModel
-                            {
-                                PageNumber = page.PageNumber,
-                                PageThumbnail = page.PageThumbnail,
-                                IsSelected = false
-                            };
-
-                            vm.PropertyChanged += (s, e) =>
-                            {
-                                if (e.PropertyName == nameof(PdfPageViewModel.IsSelected))
-                                    UpdateCommands();
-                            };
-                            Pages.Add(vm);
-                        }
+                vm.PropertyChanged += (s2, e2) =>
+                {
+                    if (e2.PropertyName == nameof(PdfPageViewModel.IsSelected))
                         UpdateCommands();
-                    });
-                });
+                };
+                Pages.Add(vm);
             }
-            finally 
-            {
-                IsLoading = false;
-            }
+            UpdateCommands();
+            IsLoading = false;
         }
     }
     private async Task RasterizeSelected()
     {
+        IsLoading = true;
+        LoadingStatusText = "Идет процесс обработки файла PDF...";
+        if (FileSource is null || string.IsNullOrEmpty(FileSource))
+        {
+            MessageBox.Show("Ошибка при попытке загрузить страницу PDF файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
         var pagesToRasterize = Pages.Where(p => p.IsSelected).ToList();
         var dialog = new SaveFileDialog
         {
@@ -135,65 +126,88 @@ public partial class WelcomeViewModel : ObservableObject
             IsLoading = true;
             LoadingStatusText = "Сохраняю файл PDF...";
 
-            try
+
+            var pageNumbers = Pages
+                .Where(p => p.IsSelected)
+                .Select(x => x.PageNumber)
+                .ToArray();
+
+            var outputPath = dialog.FileName;
+            var rasterizedPages = await _pdfDocumentService.RasterizeByPages(200, pageNumbers, FileSource);
+            var result = await _pdfDocumentService.ImagesToPdf(rasterizedPages.ToArray(), dialog.FileName);
+            if (!result)
             {
-                await Task.Run(() =>
-                {
-                    var outputPath = dialog.FileName;
-
-                    using var document = PdfDocument.Load(FileSource);
-                    using var pdf = new PdfSharp.Pdf.PdfDocument();
-                    foreach (var page in pagesToRasterize)
-                    {
-                        int zeroBased = page.PageNumber - 1;
-                        if(zeroBased < 0 ||  zeroBased >= document.PageCount)
-                            continue;
-                        try
-                        {
-                
-                            var pageSize = document.PageSizes[zeroBased];
-                            int dpi = 200;
-                            int widthPx = (int)Math.Round(pageSize.Width / 72.0 * dpi);
-                            int heightPx = (int)Math.Round(pageSize.Height / 72.0 * dpi);
-
-                            using var image = document.Render(zeroBased, widthPx, heightPx, dpi, dpi, PdfRenderFlags.ForPrinting);
-                
-                          
-                            
-                            var pdfPage = pdf.AddPage();
-                            pdfPage.Width = XUnit.FromPoint(image.Width * 72.0 / 200.0);
-                            pdfPage.Height = XUnit.FromPoint(image.Height * 72.0 / 200.0);
-
-                            using var gfx = XGraphics.FromPdfPage(pdfPage);
-                            using var ms = new MemoryStream();
-                            image.Save(ms, ImageFormat.Png);
-                            ms.Position = 0;
-                            var xImage = XImage.FromStream(ms);
-                            gfx.DrawImage(xImage, new XRect(0, 0, pdfPage.Width, pdfPage.Height));
-                        }
-                        catch (Exception e)
-                        {
-                            MessageBox.Show(e.Message + " " + e.HelpLink);
-                        }
-                    }
-
-                    try
-                    {
-                        pdf.Save(outputPath);
-                        MessageBox.Show("Файл сохранен успешно", "Успешно", MessageBoxButton.OK,
-                            MessageBoxImage.Information);
-                    }
-                    catch (Exception e)
-                    {
-                        MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-                });
+                MessageBox.Show("Произошла ошибка при попытке сохранения PDF файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
-            finally
-            {
-                IsLoading = false;
-            }
+            MessageBox.Show("Файл успешо сохранен", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            IsLoading = false;
+            //try
+            //{
+
+
+
+            //    await Task.Run(() =>
+            //    {
+            //        var outputPath = dialog.FileName;
+
+            //        using var document = PdfDocument.Load(FileSource);
+            //        using var pdf = new PdfSharp.Pdf.PdfDocument();
+            //        foreach (var page in pagesToRasterize)
+            //        {
+            //            int zeroBased = page.PageNumber - 1;
+            //            if(zeroBased < 0 ||  zeroBased >= document.PageCount)
+            //                continue;
+            //            try
+            //            {
+
+            //                var pageSize = document.PageSizes[zeroBased];
+            //                int dpi = 200;
+            //                int widthPx = (int)Math.Round(pageSize.Width / 72.0 * dpi);
+            //                int heightPx = (int)Math.Round(pageSize.Height / 72.0 * dpi);
+
+            //                using var image = document.Render(zeroBased, widthPx, heightPx, dpi, dpi, PdfRenderFlags.ForPrinting);
+
+
+
+            //                var pdfPage = pdf.AddPage();
+            //                pdfPage.Width = XUnit.FromPoint(image.Width * 72.0 / 200.0);
+            //                pdfPage.Height = XUnit.FromPoint(image.Height * 72.0 / 200.0);
+
+            //                using var gfx = XGraphics.FromPdfPage(pdfPage);
+            //                using var ms = new MemoryStream();
+            //                image.Save(ms, ImageFormat.Png);
+            //                ms.Position = 0;
+            //                var xImage = XImage.FromStream(ms);
+            //                gfx.DrawImage(xImage, new XRect(0, 0, pdfPage.Width, pdfPage.Height));
+            //            }
+            //            catch (Exception e)
+            //            {
+            //                MessageBox.Show(e.Message + " " + e.HelpLink);
+            //            }
+            //        }
+
+            //        try
+            //        {
+            //            pdf.Save(outputPath);
+            //            MessageBox.Show("Файл сохранен успешно", "Успешно", MessageBoxButton.OK,
+            //                MessageBoxImage.Information);
+            //        }
+            //        catch (Exception e)
+            //        {
+            //            MessageBox.Show(e.Message, "Ошибка", MessageBoxButton.OK,
+            //                MessageBoxImage.Error);
+            //        }
+            //    });
+            //}
+            //finally
+            //{
+            //    IsLoading = false;
+            //}
+        }
+        else
+        {
+            IsLoading = false;
         }
     }
     
@@ -218,49 +232,28 @@ public partial class WelcomeViewModel : ObservableObject
 
         IsLoading = true;
         LoadingStatusText = "Открываю страницу, ожидайте...";
+        
+        var dpi = 200;
+        var pageIndex = page.PageNumber;
 
-        try
+        if(FileSource is null || string.IsNullOrEmpty(FileSource))
         {
-            var dpi = 200;
-            var pageIndex = page.PageNumber - 1;
-
-            // Загрузка PDF (если нет async API, используем Task.Run)
-            using var document = await Task.Run(() => PdfDocument.Load(FileSource));
-
-            var pageSize = document.PageSizes[pageIndex];
-            int widthPx = (int)Math.Round(pageSize.Width / 72.0 * dpi);
-            int heightPx = (int)Math.Round(pageSize.Height / 72.0 * dpi);
-
-            // Рендеринг страницы
-            using var img = document.Render(pageIndex, widthPx, heightPx, dpi, dpi, PdfRenderFlags.ForPrinting);
-
-            // Генерируем путь для временного файла
-            string tempFilePath = Path.Combine(Path.GetTempPath(), $"pdf_preview_{Guid.NewGuid()}.png");
-
-            // Асинхронное сохранение в файл
-            await Task.Run(() =>
-            {
-                img.Save(tempFilePath, ImageFormat.Png); // Сохраняем сразу в файл
-            });
-
-            // Загрузка изображения из файла в BitmapImage
-            var bmp = new BitmapImage();
-            using (var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose | FileOptions.Asynchronous))
-            {
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.StreamSource = fileStream;
-                bmp.EndInit();
-                bmp.Freeze();
-            }
-
-            // Показ окна с изображением
-            var window = new Views.PagePreviewView(bmp);
-            window.Show();
+            MessageBox.Show("Ошибка при попытке загрузить страницу PDF файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
         }
-        finally
+
+        var imgByGS = await _pdfDocumentService.RasterizeByPage(dpi, pageIndex, FileSource);
+        var bmp = new BitmapImage();
+        using (var fileStream = new FileStream(imgByGS, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose | FileOptions.Asynchronous))
         {
-            IsLoading = false;
-        }
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = fileStream;
+            bmp.EndInit();
+            bmp.Freeze();
+        }        
+        var window = new Views.PagePreviewView(bmp);
+        window.Show();
+        IsLoading = false;        
     }
 }

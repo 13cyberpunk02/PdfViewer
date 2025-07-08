@@ -9,7 +9,7 @@ namespace PdfViewer.Views
         public WelcomeView()
         {
             InitializeComponent();
-            _viewModel = new(new PdfThumbnailService());
+            _viewModel = new(new PdfDocumentService());
             DataContext = _viewModel;
         }
     }
