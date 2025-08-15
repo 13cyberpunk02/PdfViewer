@@ -115,7 +115,7 @@ public partial class WelcomeViewModel : ObservableObject
             MessageBox.Show("Ошибка при попытке загрузить страницу PDF файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
-        var pagesToRasterize = Pages.Where(p => p.IsSelected).ToList();
+       
         var dialog = new SaveFileDialog
         {
             Filter = "PDF файлы (*.pdf)|*.pdf"
@@ -133,8 +133,8 @@ public partial class WelcomeViewModel : ObservableObject
                 .ToArray();
 
             var outputPath = dialog.FileName;
-            var rasterizedPages = await _pdfDocumentService.RasterizeByPages(200, pageNumbers, FileSource);
-            var result = await _pdfDocumentService.ImagesToPdf(rasterizedPages.ToArray(), dialog.FileName);
+            var rasterizedPages = await _pdfDocumentService.RasterizeByPages(pageNumbers, FileSource);
+            var result = await _pdfDocumentService.ImagesToPdf(rasterizedPages, dialog.FileName);
             if (!result)
             {
                 MessageBox.Show("Произошла ошибка при попытке сохранения PDF файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -233,7 +233,6 @@ public partial class WelcomeViewModel : ObservableObject
         IsLoading = true;
         LoadingStatusText = "Открываю страницу, ожидайте...";
         
-        var dpi = 200;
         var pageIndex = page.PageNumber;
 
         if(FileSource is null || string.IsNullOrEmpty(FileSource))
@@ -242,7 +241,7 @@ public partial class WelcomeViewModel : ObservableObject
             return;
         }
 
-        var imgByGS = await _pdfDocumentService.RasterizeByPage(dpi, pageIndex, FileSource);
+        var imgByGS = await _pdfDocumentService.RasterizeByPage(pageIndex, FileSource);
         var bmp = new BitmapImage();
         using (var fileStream = new FileStream(imgByGS, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.DeleteOnClose | FileOptions.Asynchronous))
         {

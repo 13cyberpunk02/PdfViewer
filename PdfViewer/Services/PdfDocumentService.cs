@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using ImageMagick;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -8,7 +9,7 @@ namespace PdfViewer.Services;
 public class PdfDocumentService : IPdfDocumentService
 {
     private readonly string _gsExeFilePath = "gswin64c.exe";
-    private readonly int _dpi = 200;
+    private readonly int _dpi = 300;
 
     public async Task<ICollection<string>> Rasterize(string inputPdfDocument)
     {
@@ -56,7 +57,7 @@ public class PdfDocumentService : IPdfDocumentService
         return pages;
     }
 
-    public async Task<string> RasterizeByPage(int dpi, int pageNumber, string inputPdfDocument)
+    public async Task<string> RasterizeByPage(int pageNumber, string inputPdfDocument)
     {
         string tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tmpDir);
@@ -64,7 +65,7 @@ public class PdfDocumentService : IPdfDocumentService
         string escapedPath = inputPdfDocument.Replace("\"", "\\\"");
         string gsArgs = $"-dNOPAUSE -dBATCH -q " +
             $"-sDEVICE=jpeg " +
-            $"-r{dpi} -dJPEGQ=95 -sPageList={pageNumber} -sOutputFile=\"{outputPattern}\" \"{escapedPath}\"";
+            $"-r{_dpi} -dJPEGQ=95 -sPageList={pageNumber} -sOutputFile=\"{outputPattern}\" \"{escapedPath}\"";
 
         var process = new Process
         {
@@ -236,7 +237,7 @@ public class PdfDocumentService : IPdfDocumentService
         }
     }
 
-    public async Task<string> RasterizeByRange(int dpi, int startPageNumber, int lastPageNumber, string inputPdfDocument)
+    public async Task<string> RasterizeByRange(int startPageNumber, int lastPageNumber, string inputPdfDocument)
     {
         string tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tmpDir);
@@ -244,7 +245,7 @@ public class PdfDocumentService : IPdfDocumentService
         string escapedPath = inputPdfDocument.Replace("\"", "\\\"");
         string gsArgs = $"-dNOPAUSE -dBATCH -q " +
             $"-sDEVICE=jpeg " +
-            $"-r{dpi} -dJPEGQ=95  -dFirstPage={startPageNumber} -dLastPage={lastPageNumber}  -sOutputFile=\"{outputPattern}\" \"{escapedPath}\"";
+            $"-r{_dpi} -dJPEGQ=95  -dFirstPage={startPageNumber} -dLastPage={lastPageNumber}  -sOutputFile=\"{outputPattern}\" \"{escapedPath}\"";
 
         var process = new Process
         {
@@ -271,7 +272,7 @@ public class PdfDocumentService : IPdfDocumentService
         return outputPattern;
     }
 
-    public async Task<List<string>> RasterizeByPages(int dpi, int[] pageNumbers, string inputPdfDocument)
+    public async Task<List<string>> RasterizeByPages(int[] pageNumbers, string inputPdfDocument)
     {
         string tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tmpDir);
@@ -281,7 +282,7 @@ public class PdfDocumentService : IPdfDocumentService
         var outputPattern = Path.Combine(tmpDir, "page_%d.jpg");
         string gsArgs = $"-dNOPAUSE -dBATCH -q " +
             $"-sDEVICE=jpeg " +
-            $"-r{dpi} -dJPEGQ=95 " +
+            $"-r{_dpi} -dJPEGQ=95 " +
             $"-sPageList={pagesNumber} " +
             $"-sOutputFile=\"{outputPattern}\" \"{inputPdfDocument}\"";
 
@@ -314,7 +315,7 @@ public class PdfDocumentService : IPdfDocumentService
             }
 
             // Собираем реальные имена файлов
-            foreach (var pageNum in pageNumbers)
+            for(var pageNum = 1; pageNum <= pageNumbers.Length; pageNum++)
             {
                 string pagePath = Path.Combine(tmpDir, $"page_{pageNum}.jpg");
                 if (File.Exists(pagePath))
@@ -332,30 +333,80 @@ public class PdfDocumentService : IPdfDocumentService
         }
     }
 
-    public async Task<bool> ImageToPdf(string image, string outputPdfFileName)
+    public bool ImageToPdf(string imagePath, string outputPdfFileName)
     {
-        string gsArgs = $"-sDEVICE=pdfwrite -o {outputPdfFileName} {image}";
-        var process = new Process
+        try
         {
-            StartInfo = new ProcessStartInfo
+            var settings = new MagickReadSettings
             {
-                FileName = _gsExeFilePath,
-                Arguments = gsArgs,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                RedirectStandardInput = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            }
-        };
-        process.Start();
-        await process.WaitForExitAsync();
-        return process.ExitCode != 0;
+                Density = new Density(_dpi, _dpi),
+                ColorSpace = ColorSpace.sRGB
+            };
+
+            using var image = new MagickImage(imagePath, settings);
+            image.Format = MagickFormat.Pdf;
+            image.Write(outputPdfFileName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return false;
+        }
     }
 
-    public async Task<bool> ImagesToPdf(string[] images, string outputPdfFileName)
+    public async Task<bool> ImagesToPdf(List<string>? imagePaths, string outputPdfFileName, CancellationToken ct = default)
     {
+        if (imagePaths is null || imagePaths.Count == 0)
+            return false;
+
+        try
+        {
+            var settings = new MagickReadSettings
+            {
+                Density = new Density(_dpi, _dpi),
+                ColorSpace = ColorSpace.sRGB
+            };
+
+            using var images = new MagickImageCollection();
+            
+            foreach (var path in imagePaths)
+            {
+                var img = new MagickImage(path, settings);
+                images.Add(img);
+            }
+            await images.WriteAsync(new FileInfo(outputPdfFileName), ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return false;
+        }
+    }
+
+    /*
+    public async Task<bool> ImagesToPdf(List<string>? images, string outputPdfFileName)
+    {
+        if(images is null || images.Count == 0)
+            return false;
+
+        string tmpDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tmpDir);
+        List<string> pages = new List<string>();
+        var pagesNumber = string.Join(",", ); // убрал пробел после запятой
+
+        var outputPattern = Path.Combine(tmpDir, "page_%d.jpg");
+        string gsArgs = $"-dNOPAUSE -dBATCH -q " +
+                        $"-sDEVICE=jpeg " +
+                        $"-r{dpi} -dJPEGQ=95 " +
+                        $"-sPageList={pagesNumber} " +
+                        $"-sOutputFile=\"{outputPattern}\" \"{inputPdfDocument}\"";
+        
+        
+        
+        
+        
         var imagesCollection = string.Join(" ", images);
         string gsArgs = $"-sDEVICE=pdfwrite -o {outputPdfFileName} {imagesCollection}";
         var process = new Process
@@ -375,5 +426,5 @@ public class PdfDocumentService : IPdfDocumentService
         process.Start();
         await process.WaitForExitAsync();
         return process.ExitCode != 0;        
-    }
+    }*/
 }

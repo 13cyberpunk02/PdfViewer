@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using PdfViewer.Helpers;
+using PdfViewer.Services;
 
 namespace PdfViewer.ViewModels;
 
@@ -38,6 +39,7 @@ public partial class PagePreviewViewModel : ObservableObject
     private bool _isDragging;
     private Point _dragStartPoint;
     private Vector _dragStartOffset;
+    private IPdfDocumentService _documentService;
 
     public PagePreviewViewModel(ImageSource? image)
     {
@@ -50,6 +52,7 @@ public partial class PagePreviewViewModel : ObservableObject
         RotateRightCommand = new RelayCommand(() => Angle = (Angle + 90) % 360);
         PrintCommand = new AsyncRelayCommand(PrintImage);
         SaveAsPdfCommand = new RelayCommand(SaveImageAsPdf);
+        _documentService = new PdfDocumentService();
     }
     
     public IRelayCommand ZoomInCommand { get; }
@@ -143,10 +146,9 @@ public partial class PagePreviewViewModel : ObservableObject
             PrintStatusVisibility = Visibility.Collapsed;
     }
 
-    // Save as PDF
     private void SaveImageAsPdf()
     {
-        Application.Current.Dispatcher.Invoke(() =>
+        Application.Current.Dispatcher.Invoke(async () =>
         {
             var dlg = new SaveFileDialog()
             {
@@ -163,27 +165,24 @@ public partial class PagePreviewViewModel : ObservableObject
                         MessageBox.Show("Изображение не найдено.");
                         return;
                     }
-                    using (var ms = new MemoryStream())
+                    var encoder = new JpegBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                    using var ms = new MemoryStream();
+                    encoder.Save(ms);
+                    //ms.Position = 0;
+                    string tmpImgPath = Path.GetTempFileName() + ".jpg";
+                    await File.WriteAllBytesAsync(tmpImgPath, 
+                        ms.ToArray());
+                    string tmpPdfName = Path.GetTempFileName() + ".pdf";
+                    var result = _documentService.ImageToPdf(tmpImgPath, tmpPdfName);
+                    if(result)
                     {
-                        var encoder = new PngBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-                        encoder.Save(ms);
-                        ms.Position = 0;
-
-                        //using (var pdf = new PdfDocument())
-                        //{
-                        //    var page = pdf.AddPage();
-                        //    using (var gfx = XGraphics.FromPdfPage(page))
-                        //    using (var img = XImage.FromStream(ms))
-                        //    {
-                        //        page.Width = img.PixelWidth * 72.0 / img.HorizontalResolution;
-                        //        page.Height = img.PixelHeight * 72.0 / img.VerticalResolution;
-                        //        gfx.DrawImage(img, 0, 0, page.Width, page.Height);
-                        //    }
-                        //    pdf.Save(dlg.FileName);
-                        //}
-                    }
-                    MessageBox.Show("Сохранено как PDF!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                        File.Copy(tmpPdfName, dlg.FileName, true);
+                        File.Delete(tmpPdfName);
+                        MessageBox.Show("Сохранено как PDF!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }                        
+                    else
+                        MessageBox.Show("Ошибка сохранения PDF ", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 catch (Exception ex)
                 {
